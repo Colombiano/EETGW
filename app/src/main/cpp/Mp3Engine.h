@@ -6,9 +6,6 @@
 #include <mutex>
 #include <string>
 
-// Forward declaration de tipos minimp3 (evita incluir header aqui)
-struct mp3dec_t;
-
 #ifdef USE_FFMPEG
 struct AVFormatContext;
 struct AVCodecContext;
@@ -51,7 +48,8 @@ private:
     int decodeMp3Frame(int16_t* buffer, int maxFrames);
     bool seekMp3(float ratio);
 
-    std::unique_ptr<mp3dec_t> mp3Decoder_;
+    // Usamos void* + deleter customizado para nao expor mp3dec_t no header
+    std::unique_ptr<void, void(*)(void*)> mp3Decoder_;
     std::vector<uint8_t> mp3FileData_;
     std::vector<uint8_t> mp3Remainder_;
     size_t mp3ReadPos_ = 0;
