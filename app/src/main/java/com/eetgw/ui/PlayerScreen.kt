@@ -119,7 +119,7 @@ fun PlayerScreen(
                         onPlay = { bridge.play() },
                         onPause = { bridge.pause() },
                         onStop = { bridge.stop() },
-                        onSeekBackward = { 
+                        onSeekBackward = {
                             bridge.seekTo((position - 10000).coerceAtLeast(0))
                         },
                         onSeekForward = {
@@ -210,7 +210,7 @@ fun PlayerControls(
     ) {
         CompactButton(
             onClick = onSeekBackward,
-            colors = ButtonDefaults.compactButtonColors(
+            colors = ButtonDefaults.buttonColors(
                 backgroundColor = TerminalColors.Surface
             ),
             modifier = Modifier.size(32.dp)
@@ -247,7 +247,7 @@ fun PlayerControls(
 
         CompactButton(
             onClick = onSeekForward,
-            colors = ButtonDefaults.compactButtonColors(
+            colors = ButtonDefaults.buttonColors(
                 backgroundColor = TerminalColors.Surface
             ),
             modifier = Modifier.size(32.dp)
@@ -259,7 +259,7 @@ fun PlayerControls(
 
         CompactButton(
             onClick = onStop,
-            colors = ButtonDefaults.compactButtonColors(
+            colors = ButtonDefaults.buttonColors(
                 backgroundColor = TerminalColors.Surface
             ),
             modifier = Modifier.size(32.dp)
@@ -271,7 +271,7 @@ fun PlayerControls(
 
         CompactButton(
             onClick = onRunningMode,
-            colors = ButtonDefaults.compactButtonColors(
+            colors = ButtonDefaults.buttonColors(
                 backgroundColor = TerminalColors.Surface
             ),
             modifier = Modifier.size(28.dp)
