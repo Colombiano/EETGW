@@ -19,7 +19,19 @@
 namespace eetgw {
 
 // —————————————————————————————————————————————————————————————————————————————
-// AacDecoder stubs (implementação completa em Mp4Engine.cpp)
+// Helpers para mp3dec_t via void* / Helpers for mp3dec_t through void*
+// —————————————————————————————————————————————————————————————————————————————
+
+static void deleteMp3Decoder(void* ptr) {
+    delete static_cast<mp3dec_t*>(ptr);
+}
+
+static mp3dec_t* getMp3Decoder(const std::unique_ptr<void, void(*)(void*)>& ptr) {
+    return static_cast<mp3dec_t*>(ptr.get());
+}
+
+// —————————————————————————————————————————————————————————————————————————————
+// AacDecoder stubs (implementacao completa em Mp4Engine.cpp)
 // —————————————————————————————————————————————————————————————————————————————
 
 AacDecoder::AacDecoder() = default;
@@ -29,7 +41,7 @@ bool AacDecoder::initialize(const uint8_t* /*ascData*/, size_t /*ascSize*/) {
     return false;
 }
 
-int AacDecoder::decode(const uint8_t* /*aacData*/, size_t /*aacSize",
+int AacDecoder::decode(const uint8_t* /*aacData*/, size_t /*aacSize*/,
                        int16_t* /*pcmBuffer*/, int /*maxFrames*/) {
     return 0;
 }
@@ -81,7 +93,7 @@ static std::string extractFilename(const std::string& path) {
 // Mp3Engine
 // —————————————————————————————————————————————————————————————————————————————
 
-Mp3Engine::Mp3Engine() = default;
+Mp3Engine::Mp3Engine() : mp3Decoder_(nullptr, deleteMp3Decoder) {}
 Mp3Engine::~Mp3Engine() { unload(); }
 
 AudioFormat Mp3Engine::detectFormat(const std::string& path) {
@@ -233,8 +245,8 @@ bool Mp3Engine::loadMp3(const std::string& path) {
         return false;
     }
 
-    mp3Decoder_ = std::make_unique<mp3dec_t>();
-    mp3dec_init(mp3Decoder_.get());
+    mp3Decoder_.reset(new mp3dec_t());
+    mp3dec_init(getMp3Decoder(mp3Decoder_));
 
     mp3dec_file_info_t info;
     int ret = mp3dec_detect(mp3FileData_.data(), mp3FileData_.size(), &info);
@@ -252,7 +264,7 @@ bool Mp3Engine::loadMp3(const std::string& path) {
 
         mp3dec_frame_info_t frameInfo;
         int16_t framePCM[MINIMP3_MAX_SAMPLES_PER_FRAME];
-        mp3dec_decode_frame(mp3Decoder_.get(), mp3FileData_.data(),
+        mp3dec_decode_frame(getMp3Decoder(mp3Decoder_), mp3FileData_.data(),
                             std::min(mp3FileData_.size(), size_t(4096)),
                             framePCM, &frameInfo);
         if (frameInfo.hz > 0) {
@@ -289,7 +301,7 @@ int Mp3Engine::decodeMp3Frame(int16_t* buffer, int maxFrames) {
     size_t decodePos = 0;
     while (totalFrames < maxFrames && decodePos < input.size()) {
         int16_t pcm[MINIMP3_MAX_SAMPLES_PER_FRAME];
-        int samples = mp3dec_decode_frame(mp3Decoder_.get(),
+        int samples = mp3dec_decode_frame(getMp3Decoder(mp3Decoder_),
                                           input.data() + decodePos,
                                           input.size() - decodePos,
                                           pcm, &frameInfo);
@@ -335,7 +347,7 @@ bool Mp3Engine::seekMp3(float ratio) {
 }
 
 // =============================================================================
-// MP4 Stubs (implementação real em Mp4Engine.cpp)
+// MP4 Stubs (implementacao real em Mp4Engine.cpp)
 // =============================================================================
 
 bool Mp3Engine::loadMp4(const std::string& /*path*/) {
