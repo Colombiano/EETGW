@@ -20,6 +20,17 @@
 namespace eetgw {
 
 // =============================================================================
+// AacDecoder — Constructor / Destructor
+// =============================================================================
+
+AacDecoder::AacDecoder() : handle_(nullptr), sampleRate_(44100), channels_(2), initialized_(false) {
+}
+
+AacDecoder::~AacDecoder() {
+    cleanup();
+}
+
+// =============================================================================
 // Callback de leitura para MP4D_open / Read callback for MP4D_open
 // =============================================================================
 
