@@ -90,38 +90,104 @@ C++17 Engine
 ## 🚀 Quick Start
 
 ### 🇧🇷 Pré-requisitos / 🇺🇸 Prerequisites
-- Android Studio Hedgehog+
-- Android NDK r26b
-- CMake 3.22.1+
 
-### 1. Clone
+#### 0. Instalar Android Studio + NDK + CMake
+
+O NDK (Native Development Kit) e o CMake são obrigatórios para compilar o código C++.
+
+**Passo a passo no Android Studio:**
+
+1. Baixe e instale o **Android Studio Hedgehog (2023.1.1)** ou superior
+2. Abra o **SDK Manager**:
+   - **Linux/Windows:** `File → Settings → Appearance & Behavior → System Settings → Android SDK`
+   - **macOS:** `Android Studio → Preferences → Android SDK`
+3. Na aba **SDK Tools**, marque:
+   - ☑️ **NDK (Side by side)** → versão `26.1.10909125`
+   - ☑️ **CMake** → versão `3.22.1`
+4. Clique em **Apply** → **OK** e aguarde o download
+
+**Configure as variáveis de ambiente** (execute no terminal):
+
+```bash
+echo 'export ANDROID_SDK_ROOT=$HOME/Android/Sdk' >> ~/.bashrc
+echo 'export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125' >> ~/.bashrc
+echo 'export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools' >> ~/.bashrc
+source ~/.bashrc
+```
+
+> 🇧🇷 **Problema comum:** Se o script `./scripts/build-fdk-aac.sh` der erro "NDK não encontrado", verifique se a variável `ANDROID_NDK_HOME` está definida: `echo $ANDROID_NDK_HOME`.
+> 🇺🇸 **Common issue:** If `./scripts/build-fdk-aac.sh` fails with "NDK not found", check if `ANDROID_NDK_HOME` is set: `echo $ANDROID_NDK_HOME`.
+
+---
+
+### 1. Clone e dependências nativas
 
 ```bash
 git clone https://github.com/Colombiano/eetgw.git
 cd eetgw
 ```
 
+**Baixe as bibliotecas nativas** (não estão no repositório por serem de terceiros):
+
+```bash
+# Oboe — API de áudio de baixa latência do Google
+git clone https://github.com/google/oboe.git app/src/main/cpp/oboe
+
+# minimp3 — decodificador MP3 (single-header)
+curl -L -o app/src/main/cpp/minimp3/minimp3.h \
+  https://raw.githubusercontent.com/lieff/minimp3/master/minimp3.h
+curl -L -o app/src/main/cpp/minimp3/minimp3_ex.h \
+  https://raw.githubusercontent.com/lieff/minimp3/master/minimp3_ex.h
+
+# minimp4 — demuxer MP4 (single-header)
+curl -L -o app/src/main/cpp/minimp4/minimp4.h \
+  https://raw.githubusercontent.com/lieff/minimp4/master/minimp4.h
+```
+
+> ⚠️ Se a pasta `app/src/main/cpp/oboe` já existir (erro `.gitkeep`), remova-a primeiro: `rm -rf app/src/main/cpp/oboe && git clone ...`
+
+---
+
 ### 2. 🇧🇷 Compile fdk-aac / 🇺🇸 Build fdk-aac
+
+O `fdk-aac` precisa ser compilado manualmente para o Android NDK:
 
 ```bash
 chmod +x scripts/build-fdk-aac.sh
 ./scripts/build-fdk-aac.sh
 ```
 
-### 3. 🇧🇷 Build / 🇺🇸 Build
+Este script detecta automaticamente seu sistema (Linux/macOS), encontra o NDK, compila `libfdk-aac.a` para `arm64-v8a` e `armeabi-v7a`, e copia os arquivos para o projeto.
+
+---
+
+### 3. 🇧🇷 Build do projeto / 🇺🇸 Build project
 
 ```bash
 ./gradlew assembleDebug
 ```
 
-### 4. 🇧🇷 Instale / 🇺🇸 Install
+O APK será gerado em: `app/build/outputs/apk/debug/app-debug.apk`
+
+---
+
+### 4. 🇧🇷 Instale no Galaxy Watch / 🇺🇸 Install on Galaxy Watch
 
 ```bash
+# Conecte o relógio via WiFi (mesma rede do PC)
+adb connect <IP_DO_RELOGIO>:5555
+
+# Instale
 adb install app/build/outputs/apk/debug/app-debug.apk
+
+# Veja os logs em tempo real
+adb logcat | grep EETGW
 ```
 
-🇧🇷 Veja [docs/BUILD.md](docs/BUILD.md) para guia detalhado por plataforma.
-🇺🇸 See [docs/BUILD.md](docs/BUILD.md) for detailed platform guide.
+---
+
+🇧🇷 Veja [docs/BUILD.md](docs/BUILD.md) para guia detalhado por plataforma (Windows, macOS, Linux).
+🇺🇸 See [docs/BUILD.md](docs/BUILD.md) for detailed per-platform guide (Windows, macOS, Linux).
 
 ---
 
