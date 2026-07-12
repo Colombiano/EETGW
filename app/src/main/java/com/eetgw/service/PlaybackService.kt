@@ -21,6 +21,12 @@ class PlaybackService : Service() {
         private const val TAG = "EETGW_Service"
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "eetgw_playback"
+
+        const val ACTION_PLAY = "com.eetgw.action.PLAY"
+        const val ACTION_PAUSE = "com.eetgw.action.PAUSE"
+        const val ACTION_STOP = "com.eetgw.action.STOP"
+        const val ACTION_PREVIOUS = "com.eetgw.action.PREVIOUS"
+        const val ACTION_NEXT = "com.eetgw.action.NEXT"
     }
 
     private val binder = PlaybackBinder()
@@ -41,7 +47,7 @@ class PlaybackService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand: ${intent?.action}")
-        
+
         when (intent?.action) {
             ACTION_PLAY -> bridge.play()
             ACTION_PAUSE -> bridge.pause()
@@ -53,7 +59,7 @@ class PlaybackService : Service() {
             ACTION_PREVIOUS -> bridge.onSwipeRight()
             ACTION_NEXT -> bridge.onSwipeLeft()
         }
-        
+
         startForeground(NOTIFICATION_ID, buildNotification())
         return START_STICKY
     }
@@ -73,7 +79,7 @@ class PlaybackService : Service() {
             description = "Controles de reproducao EETGW / EETGW playback controls"
             setShowBadge(false)
         }
-        
+
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
     }
@@ -108,7 +114,7 @@ class PlaybackService : Service() {
             .setContentIntent(pendingContent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .addAction(R.drawable.ic_skip_prev, "Previous", 
+            .addAction(R.drawable.ic_skip_prev, "Previous",
                 PendingIntent.getService(this, 4,
                     Intent(this, PlaybackService::class.java).setAction(ACTION_PREVIOUS),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
@@ -130,13 +136,5 @@ class PlaybackService : Service() {
     fun updateNotification() {
         val manager = getSystemService(NotificationManager::class.java)
         manager.notify(NOTIFICATION_ID, buildNotification())
-    }
-
-    companion object {
-        const val ACTION_PLAY = "com.eetgw.action.PLAY"
-        const val ACTION_PAUSE = "com.eetgw.action.PAUSE"
-        const val ACTION_STOP = "com.eetgw.action.STOP"
-        const val ACTION_PREVIOUS = "com.eetgw.action.PREVIOUS"
-        const val ACTION_NEXT = "com.eetgw.action.NEXT"
     }
 }
