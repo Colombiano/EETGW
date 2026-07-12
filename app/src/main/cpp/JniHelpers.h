@@ -39,7 +39,7 @@ public:
 
     const char* get() const { return cstr_; }
     bool isNull() const { return cstr_ == nullptr; }
-    
+
     std::string toString() const {
         return cstr_ ? std::string(cstr_) : std::string();
     }
@@ -113,7 +113,7 @@ private:
 class JniGlobalRef {
 public:
     JniGlobalRef() : env_(nullptr), ref_(nullptr) {}
-    
+
     JniGlobalRef(JNIEnv* env, jobject obj)
         : env_(env), ref_(obj ? env_->NewGlobalRef(obj) : nullptr) {}
 
@@ -152,6 +152,70 @@ public:
 private:
     JNIEnv* env_;
     jobject ref_;
+};
+
+// ————————————————————————————————————————————————————————
+// JniClass — RAII para jclass local / RAII for local jclass
+// ————————————————————————————————————————————————————————
+class JniClass {
+public:
+    JniClass(JNIEnv* env, const char* className)
+        : env_(env), cls_(env_->FindClass(className)) {}
+
+    ~JniClass() {
+        if (cls_ != nullptr) {
+            env_->DeleteLocalRef(cls_);
+        }
+    }
+
+    JniClass(const JniClass&) = delete;
+    JniClass& operator=(const JniClass&) = delete;
+
+    JniClass(JniClass&& other) noexcept
+        : env_(other.env_), cls_(other.cls_) {
+        other.cls_ = nullptr;
+    }
+
+    jclass get() const { return cls_; }
+    bool isNull() const { return cls_ == nullptr; }
+
+    jmethodID getMethodID(const char* name, const char* sig) {
+        if (!cls_) return nullptr;
+        return env_->GetMethodID(cls_, name, sig);
+    }
+
+    jfieldID getFieldID(const char* name, const char* sig) {
+        if (!cls_) return nullptr;
+        return env_->GetFieldID(cls_, name, sig);
+    }
+
+private:
+    JNIEnv* env_;
+    jclass cls_;
+};
+
+// ————————————————————————————————————————————————————————
+// JniLocalFrame — RAII para PushLocalFrame/PopLocalFrame
+// ————————————————————————————————————————————————————————
+class JniLocalFrame {
+public:
+    JniLocalFrame(JNIEnv* env, jint capacity)
+        : env_(env), pushed_(env_->PushLocalFrame(capacity) == JNI_OK) {}
+
+    ~JniLocalFrame() {
+        if (pushed_) {
+            env_->PopLocalFrame(nullptr);
+        }
+    }
+
+    JniLocalFrame(const JniLocalFrame&) = delete;
+    JniLocalFrame& operator=(const JniLocalFrame&) = delete;
+
+    bool isPushed() const { return pushed_; }
+
+private:
+    JNIEnv* env_;
+    bool pushed_;
 };
 
 } // namespace eetgw
