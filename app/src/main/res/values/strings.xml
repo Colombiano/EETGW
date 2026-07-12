@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EETGW</string>
+    <string name="app_name_full">Essa e pra tocar no Galaxy Watch</string>
+
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="seek_forward">+10s</string>
+    <string name="seek_backward">-10s</string>
+
+    <string name="player_title">Player</string>
+    <string name="running_mode">Modo Running</string>
+    <string name="running_mode_hint">Toque para voltar</string>
+
+    <string name="notification_channel">EETGW Playback</string>
+    <string name="notification_playing">Reproduzindo / Playing</string>
+    <string name="notification_paused">Pausado / Paused</string>
+
+    <string name="error_file_not_found">Arquivo nao encontrado / File not found</string>
+    <string name="error_unsupported_format">Formato nao suportado / Unsupported format</string>
+    <string name="error_decode_failed">Falha na decodificacao / Decode failed</string>
+    <string name="error_no_permission">Sem permissao / No permission</string>
+
+    <string name="unknown_title">Desconhecido</string>
+    <string name="unknown_artist">Artista Desconhecido</string>
+    <string name="unknown_album">Album Desconhecido</string>
+</resources>
