@@ -13,7 +13,8 @@ class NativeBridge private constructor() {
 
     companion object {
         private const val TAG = "EETGW_Bridge"
-        
+        val SUPPORTED_EXTENSIONS = setOf("mp3", "mp4", "m4a", "aac")
+
         @JvmStatic
         fun loadLibrary() {
             try {
@@ -33,6 +34,12 @@ class NativeBridge private constructor() {
                 instance ?: NativeBridge().also { instance = it }
             }
         }
+
+        @JvmStatic
+        external fun nativeGetVersion(): String
+
+        @JvmStatic
+        external fun nativeGetOboeVersion(): String
     }
 
     // ————————————————————————————————————————————————————————
@@ -190,10 +197,6 @@ class NativeBridge private constructor() {
         return ext in SUPPORTED_EXTENSIONS
     }
 
-    companion object {
-        val SUPPORTED_EXTENSIONS = setOf("mp3", "mp4", "m4a", "aac")
-    }
-
     // =============================================================================
     // Dados / Data
     // =============================================================================
@@ -275,7 +278,4 @@ class NativeBridge private constructor() {
     private external fun nativeOnSwipeDown()
     private external fun nativeOnDoubleTap()
     private external fun nativeOnLongPress()
-
-    external fun nativeGetVersion(): String
-    external fun nativeGetOboeVersion(): String
 }
