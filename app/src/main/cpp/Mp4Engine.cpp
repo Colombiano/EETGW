@@ -105,6 +105,7 @@ void AacDecoder::cleanup() {
 
 // =============================================================================
 // MP4 Implementation (minimp4 + fdk-aac)
+// Versao simplificada para compatibilidade / Simplified for compatibility
 // =============================================================================
 
 bool Mp3Engine::loadMp4(const std::string& path) {
@@ -162,26 +163,11 @@ bool Mp3Engine::loadMp4(const std::string& path) {
 
     MP4D_track_t& track = demux->track[audioTrack];
 
-    // Extrai ASC (AudioSpecificConfig)
-    // Tenta diferentes abordagens para encontrar o ASC
+    // Inicializa AAC decoder com ASC generico / Init with generic ASC
+    // AAC-LC, 44100Hz, 2 channels = 0x12 0x10
     std::vector<uint8_t> asc;
-
-    // Abordagem 1: Procura na estrutura da track por dados de configuracao
-    // O minimp4 pode armazenar o ASC em diferentes campos
-    // Tenta extrair dos primeiros bytes do sample entry
-    if (track.object_type_indication == 0x40 || track.object_type_indication == 0x66) {
-        // MPEG-4 audio / AAC
-        // ASC basico para AAC-LC 44.1kHz stereo: 0x12 0x10
-        asc.push_back(0x12);
-        asc.push_back(0x10);
-    }
-
-    // Se nao conseguiu, usa um ASC generico
-    if (asc.empty()) {
-        // ASC basico: AAC-LC, 44100Hz, 2 channels
-        asc.push_back(0x12);
-        asc.push_back(0x10);
-    }
+    asc.push_back(0x12);
+    asc.push_back(0x10);
 
     aacDecoder_ = std::make_unique<AacDecoder>();
     if (!aacDecoder_->initialize(asc.data(), asc.size())) {
@@ -193,28 +179,24 @@ bool Mp3Engine::loadMp4(const std::string& path) {
     unsigned sampleCount = track.sample_count;
     unsigned timescale = track.timescale > 0 ? track.timescale : 44100;
 
-    // Constroi chunks a partir dos samples
-    int64_t currentOffset = 0;
-    const size_t MAX_SAMPLES = 10000;
+    // Constroi chunks com offsets fixos / Build chunks with fixed offsets
+    // Cada chunk = ~1 segundo de audio / Each chunk = ~1 second of audio
+    const size_t CHUNK_SIZE = 16384;  // 16KB chunks
+    int64_t filePos = 0;
+    size_t numChunks = (fileSize + CHUNK_SIZE - 1) / CHUNK_SIZE;
+    const size_t MAX_CHUNKS = 50000;
 
-    for (unsigned i = 0; i < std::min(sampleCount, (unsigned)MAX_SAMPLES); i++) {
-        unsigned int dur = 1024;  // Default AAC frame size
-
-        // Tenta obter duracao do sample
-        if (track.sample_duration) {
-            dur = track.sample_duration[i];
-        }
-
+    for (size_t i = 0; i < std::min(numChunks, MAX_CHUNKS); i++) {
         AudioChunk chunk;
-        chunk.offset = currentOffset;
-        chunk.size = 0;
+        chunk.offset = filePos;
+        chunk.size = std::min((int64_t)CHUNK_SIZE, fileSize - filePos);
         chunk.sampleIndex = i;
-        chunk.durationMs = (dur * 1000ULL) / timescale;
+        chunk.durationMs = (chunk.size * 1000ULL) / (128 * 1024 / 8);  // Estimativa @ 128kbps
         mp4Context_->chunks.push_back(chunk);
-        currentOffset += dur;
+        filePos += chunk.size;
     }
 
-    // Calcula duracao total
+    // Calcula duracao total / Calculate total duration
     if (track.duration && timescale > 0) {
         metadata_.durationMs = (*track.duration * 1000ULL) / timescale;
     } else {
@@ -225,12 +207,12 @@ bool Mp3Engine::loadMp4(const std::string& path) {
     metadata_.channels = aacDecoder_->getChannels();
     metadata_.hasVideo = true;
 
-    mp4Context_->chunkBuffer.resize(64 * 1024 * 2);
+    mp4Context_->chunkBuffer.resize(CHUNK_SIZE * 2);
     currentChunkIndex_ = 0;
     loaded_ = true;
 
-    LOGI("MP4 loaded: %s, samples=%u, duration=%ldms",
-         path.c_str(), sampleCount, metadata_.durationMs);
+    LOGI("MP4 loaded: %s, chunks=%zu, duration=%ldms",
+         path.c_str(), mp4Context_->chunks.size(), metadata_.durationMs);
 
     return true;
 }
@@ -242,33 +224,22 @@ int Mp3Engine::decodeMp4Frame(int16_t* buffer, int maxFrames) {
         return 0;
     }
 
-    MP4D_demux_t* demux = static_cast<MP4D_demux_t*>(mp4Context_->demuxState);
+    const auto& chunk = mp4Context_->chunks[currentChunkIndex_];
 
-    // Encontra track de audio
-    int audioTrack = -1;
-    for (unsigned i = 0; i < demux->track_count; i++) {
-        if (demux->track[i].handler_type == MP4D_HANDLER_TYPE_SOUN) {
-            audioTrack = i;
-            break;
-        }
+    if (!mp4Context_->fileHandle || fseek(mp4Context_->fileHandle, chunk.offset, SEEK_SET) != 0) {
+        return 0;
     }
-    if (audioTrack < 0) return 0;
 
-    int decoded = 0;
-
-    // Le o proximo sample usando mp4d_read_sample
-    unsigned char* sampleData = nullptr;
-    unsigned int sampleBytes = 0;
-    unsigned int sampleTimestamp = 0;
-    unsigned int sampleDuration = 0;
-
-    if (mp4d_read_sample(demux, audioTrack, currentChunkIndex_,
-                          &sampleData, &sampleBytes,
-                          &sampleTimestamp, &sampleDuration)) {
-        if (sampleBytes > 0 && sampleData) {
-            decoded = aacDecoder_->decode(sampleData, sampleBytes, buffer, maxFrames);
-        }
+    // Le bloco do arquivo / Read block from file
+    std::vector<uint8_t> aacData(chunk.size);
+    size_t read = fread(aacData.data(), 1, chunk.size, mp4Context_->fileHandle);
+    if (read == 0) {
+        currentChunkIndex_++;
+        return 0;
     }
+
+    // Tenta decodificar / Try to decode
+    int decoded = aacDecoder_->decode(aacData.data(), read, buffer, maxFrames);
 
     currentChunkIndex_++;
 
