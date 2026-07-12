@@ -65,7 +65,7 @@ find_ndk() {
 
     if [ ! -d "$NDK" ]; then
         log_error "NDK não encontrado em: $NDK"
-        log_info "Instale via: sdkmanager --install "ndk;$NDK_VERSION""
+        log_info "Instale via: sdkmanager --install \"ndk;$NDK_VERSION\""
         exit 1
     fi
 
@@ -139,6 +139,21 @@ clone_fdk_aac() {
         git pull
         cd -
     fi
+
+    # Gera o script configure a partir do configure.ac
+    # (o configure não está no repositório, precisa ser gerado)
+    log_info "Gerando script configure com autoreconf..."
+    cd "$BUILD_DIR/fdk-aac"
+    if ! command -v autoreconf &> /dev/null; then
+        log_error "autoreconf não encontrado. Instale com: sudo apt install autoconf automake libtool"
+        exit 1
+    fi
+    autoreconf -fi 2>&1 | tee autoreconf.log
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        log_error "autoreconf falhou. Veja: $BUILD_DIR/fdk-aac/autoreconf.log"
+        exit 1
+    fi
+    cd -
 }
 
 build_abi() {
@@ -160,7 +175,20 @@ build_abi() {
 
     # Configure
     log_info "Configurando..."
-    "$BUILD_DIR/fdk-aac/configure"         --host="$TARGET"         --with-sysroot="$TOOLCHAIN/sysroot"         --enable-static         --disable-shared         --prefix="$install_abi_dir"         CC="$CC"         CXX="$CXX"         AR="$AR"         RANLIB="$RANLIB"         STRIP="$STRIP"         CFLAGS="$CFLAGS"         LDFLAGS="$LDFLAGS"         2>&1 | tee configure.log
+    "$BUILD_DIR/fdk-aac/configure" \
+        --host="$TARGET" \
+        --with-sysroot="$TOOLCHAIN/sysroot" \
+        --enable-static \
+        --disable-shared \
+        --prefix="$install_abi_dir" \
+        CC="$CC" \
+        CXX="$CXX" \
+        AR="$AR" \
+        RANLIB="$RANLIB" \
+        STRIP="$STRIP" \
+        CFLAGS="$CFLAGS" \
+        LDFLAGS="$LDFLAGS" \
+        2>&1 | tee configure.log
 
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
         log_error "Configure falhou para $abi. Veja: $build_abi_dir/configure.log"
