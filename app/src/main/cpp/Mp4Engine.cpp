@@ -20,7 +20,7 @@
 namespace eetgw {
 
 // =============================================================================
-// AacDecoder — Implementação completa / Full implementation
+// AacDecoder — Implementacao completa / Full implementation
 // =============================================================================
 
 bool AacDecoder::initialize(const uint8_t* ascData, size_t ascSize) {
@@ -92,6 +92,7 @@ void AacDecoder::cleanup() {
 
 // =============================================================================
 // MP4 Implementation (minimp4 + fdk-aac)
+// Usa API MP4D_ (UPPERCASE) da versao do minimp4 instalada
 // =============================================================================
 
 bool Mp3Engine::loadMp4(const std::string& path) {
@@ -115,8 +116,8 @@ bool Mp3Engine::loadMp4(const std::string& path) {
     int64_t fileSize = ftell(mp4Context_->fileHandle);
     fseek(mp4Context_->fileHandle, 0, SEEK_SET);
 
-    auto* demux = new mp4d_demux_t;
-    memset(demux, 0, sizeof(mp4d_demux_t));
+    auto* demux = new MP4D_demux_t;
+    memset(demux, 0, sizeof(MP4D_demux_t));
     mp4Context_->demuxState = demux;
 
     std::vector<uint8_t> header(std::min(fileSize, int64_t(65536)));
@@ -125,8 +126,8 @@ bool Mp3Engine::loadMp4(const std::string& path) {
     unsigned char* p = header.data();
     size_t bytes_left = headerRead;
 
-    if (!mp4d_open(demux, &p, &bytes_left, 0)) {
-        LOGE("mp4d_open failed: %s", path.c_str());
+    if (!MP4D_open(demux, &p, &bytes_left, 0)) {
+        LOGE("MP4D_open failed: %s", path.c_str());
         mp4Context_.reset();
         return false;
     }
@@ -145,8 +146,9 @@ bool Mp3Engine::loadMp4(const std::string& path) {
         return false;
     }
 
-    auto& track = demux->track[audioTrack];
+    MP4D_track_t& track = demux->track[audioTrack];
 
+    // Extrai AudioSpecificConfig (ASC) do sample entry
     std::vector<uint8_t> asc;
     if (track.sample_entry.size > 0) {
         const uint8_t* se = track.sample_entry.data;
@@ -188,7 +190,7 @@ bool Mp3Engine::loadMp4(const std::string& path) {
         unsigned int sampleTimestamp = 0;
         unsigned int sampleDuration = 0;
 
-        if (mp4d_read_sample(demux, audioTrack, i, &sampleData, &sampleBytes,
+        if (MP4D_read_sample(demux, audioTrack, i, &sampleData, &sampleBytes,
                               &sampleTimestamp, &sampleDuration)) {
             AudioChunk chunk;
             chunk.offset = currentOffset;
