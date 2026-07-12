@@ -212,32 +212,6 @@ int Mp3Engine::decodeNextFrame(int16_t* buffer, int maxFrames) {
     return decoded;
 }
 
-bool Mp3Engine::seekToRatio(float ratio) {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    ratio = std::max(0.0f, std::min(1.0f, ratio));
-
-    switch (metadata_.format) {
-        case AudioFormat::MP3:
-            return seekMp3(ratio);
-        case AudioFormat::MP4_AAC:
-        case AudioFormat::MP4_MP3:
-            return seekMp4(ratio);
-        default:
-            return false;
-    }
-}
-
-bool Mp3Engine::seekToMs(int64_t positionMs) {
-    if (metadata_.durationMs <= 0) return false;
-    float ratio = static_cast<float>(positionMs) / metadata_.durationMs;
-    return seekToRatio(ratio);
-}
-
-// =============================================================================
-// MP3 Implementation (minimp3)
-// =============================================================================
-
 bool Mp3Engine::loadMp3(const std::string& path) {
     mp3FileData_ = readFile(path);
     if (mp3FileData_.empty()) {
@@ -248,29 +222,27 @@ bool Mp3Engine::loadMp3(const std::string& path) {
     mp3Decoder_.reset(new mp3dec_t());
     mp3dec_init(getMp3Decoder(mp3Decoder_));
 
-    mp3dec_file_info_t info;
-    int ret = mp3dec_detect(mp3FileData_.data(), mp3FileData_.size(), &info);
-
-    if (ret == 0 && info.hz > 0) {
-        metadata_.sampleRate = info.hz;
-        metadata_.channels = info.channels;
-        metadata_.durationMs = info.avg_bitrate_kbps > 0
-            ? (static_cast<int64_t>(mp3FileData_.size()) * 8) / (info.avg_bitrate_kbps)
-            : 0;
-        metadata_.bitrate = info.avg_bitrate_kbps * 1000;
-    } else {
-        metadata_.sampleRate = 44100;
-        metadata_.channels = 2;
-
-        mp3dec_frame_info_t frameInfo;
-        int16_t framePCM[MINIMP3_MAX_SAMPLES_PER_FRAME];
-        mp3dec_decode_frame(getMp3Decoder(mp3Decoder_), mp3FileData_.data(),
+    // Deteccao manual via primeiro frame / Manual detection via first frame
+    mp3dec_frame_info_t frameInfo;
+    int16_t framePCM[MINIMP3_MAX_SAMPLES_PER_FRAME];
+    int samples = mp3dec_decode_frame(getMp3Decoder(mp3Decoder_), mp3FileData_.data(),
                             std::min(mp3FileData_.size(), size_t(4096)),
                             framePCM, &frameInfo);
-        if (frameInfo.hz > 0) {
-            metadata_.sampleRate = frameInfo.hz;
-            metadata_.channels = frameInfo.channels;
-        }
+
+    if (frameInfo.hz > 0) {
+        metadata_.sampleRate = frameInfo.hz;
+        metadata_.channels = frameInfo.channels;
+        // Estimativa de duracao baseada no tamanho do arquivo / Duration estimate
+        // Aproximadamente 128kbps como media / ~128kbps average
+        metadata_.bitrate = 128000;
+        int64_t totalBits = static_cast<int64_t>(mp3FileData_.size()) * 8;
+        metadata_.durationMs = totalBits / 128;  // ms at 128kbps
+    } else {
+        // Fallback
+        metadata_.sampleRate = 44100;
+        metadata_.channels = 2;
+        metadata_.bitrate = 128000;
+        metadata_.durationMs = (static_cast<int64_t>(mp3FileData_.size()) * 8) / 128;
     }
 
     mp3ReadPos_ = 0;
