@@ -22,7 +22,19 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer")
 # Oboe (Audio de Baixa Latencia / Low Latency Audio)
 # =============================================================================
 if (EXISTS "${OBOE_DIR}/CMakeLists.txt")
+    # Desabilitar -Werror no Oboe antes de incluir
+    set(OBOE_DEBUG OFF CACHE BOOL "" FORCE)
     add_subdirectory(${OBOE_DIR} ./oboe)
+
+    # Remover -Werror do target oboe (se existir)
+    if(TARGET oboe)
+        get_target_property(OBOE_COMPILE_OPTS oboe COMPILE_OPTIONS)
+        if(OBOE_COMPILE_OPTS)
+            list(REMOVE_ITEM OBOE_COMPILE_OPTS "-Werror")
+            set_target_properties(oboe PROPERTIES COMPILE_OPTIONS "${OBOE_COMPILE_OPTS}")
+        endif()
+        target_compile_options(oboe PRIVATE -Wno-error)
+    endif()
 else()
     find_package(oboe QUIET)
     if (NOT oboe_FOUND)
@@ -82,6 +94,7 @@ include_directories(
 set(SOURCES
     native_bridge.cpp
     Mp3Engine.cpp
+    Mp4Engine.cpp
     AudioPlayer.cpp
     MetadataCache.cpp
 )
