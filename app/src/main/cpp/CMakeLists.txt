@@ -13,27 +13,43 @@ set(OBOE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/oboe" CACHE STRING "Diretorio do Oboe 
 # =============================================================================
 # Flags do Compilador / Compiler Flags
 # =============================================================================
-# Flags para nosso codigo (warnings como warnings, nao erros)
+# Nosso codigo: warnings sao warnings, nao erros
+# Use -Wno-error para garantir que warnings de bibliotecas de terceiros nao quebrem o build
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-error")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math -funroll-loops -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer")
+
+# Desabilitar -Werror globalmente (algumas libs de terceiros usam -Werror)
+string(REPLACE "-Werror" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+string(REPLACE "-Werror" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
 # =============================================================================
 # Oboe (Audio de Baixa Latencia / Low Latency Audio)
 # =============================================================================
 if (EXISTS "${OBOE_DIR}/CMakeLists.txt")
-    # Desabilitar -Werror no Oboe antes de incluir
-    set(OBOE_DEBUG OFF CACHE BOOL "" FORCE)
+    # Salvar flags originais / Save original flags
+    set(SAVED_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    set(SAVED_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    
+    # Para a compilacao do Oboe, remover -Werror explicitamente
+    # Garantir que warnings no codigo do Oboe nao falhem o build
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wno-unused-parameter -Wno-sign-compare")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error -Wno-unused-parameter -Wno-sign-compare")
+    
     add_subdirectory(${OBOE_DIR} ./oboe)
+    
+    # Restaurar flags originais / Restore original flags
+    set(CMAKE_CXX_FLAGS "${SAVED_CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "${SAVED_CMAKE_C_FLAGS}")
 
-    # Remover -Werror do target oboe (se existir)
+    # Garantir que o target oboe nao use -Werror
     if(TARGET oboe)
         get_target_property(OBOE_COMPILE_OPTS oboe COMPILE_OPTIONS)
         if(OBOE_COMPILE_OPTS)
             list(REMOVE_ITEM OBOE_COMPILE_OPTS "-Werror")
             set_target_properties(oboe PROPERTIES COMPILE_OPTIONS "${OBOE_COMPILE_OPTS}")
         endif()
-        target_compile_options(oboe PRIVATE -Wno-error)
+        target_compile_options(oboe PRIVATE -Wno-error -Wno-unused-parameter)
     endif()
 else()
     find_package(oboe QUIET)
