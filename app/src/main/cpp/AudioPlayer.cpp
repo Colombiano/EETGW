@@ -143,7 +143,7 @@ double AudioPlayer::getLatencyMs() const {
     
     auto result = stream_->calculateLatencyMillis();
     if (result) {
-        return *result;
+        return result.value();
     }
     return 0.0;
 }

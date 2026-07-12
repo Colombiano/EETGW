@@ -13,7 +13,8 @@ set(OBOE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/oboe" CACHE STRING "Diretorio do Oboe 
 # =============================================================================
 # Flags do Compilador / Compiler Flags
 # =============================================================================
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+# Flags para nosso codigo (warnings como warnings, nao erros)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-error")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math -funroll-loops -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer")
 

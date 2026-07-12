@@ -6,8 +6,16 @@
 #include <mutex>
 #include <string>
 
-struct mp3dec_t;
-struct mp3dec_frame_info;
+// minimp3 headers (single-header, lightweight)
+#include "minimp3.h"
+#include "minimp3_ex.h"
+
+#ifdef USE_FFMPEG
+struct AVFormatContext;
+struct AVCodecContext;
+struct AVFrame;
+struct SwrContext;
+#endif
 
 namespace eetgw {
 
