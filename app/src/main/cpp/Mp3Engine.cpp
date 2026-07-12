@@ -31,27 +31,6 @@ static mp3dec_t* getMp3Decoder(const std::unique_ptr<void, void(*)(void*)>& ptr)
 }
 
 // —————————————————————————————————————————————————————————————————————————————
-// AacDecoder stubs (implementacao completa em Mp4Engine.cpp)
-// —————————————————————————————————————————————————————————————————————————————
-
-AacDecoder::AacDecoder() = default;
-AacDecoder::~AacDecoder() { cleanup(); }
-
-bool AacDecoder::initialize(const uint8_t* /*ascData*/, size_t /*ascSize*/) {
-    return false;
-}
-
-int AacDecoder::decode(const uint8_t* /*aacData*/, size_t /*aacSize*/,
-                       int16_t* /*pcmBuffer*/, int /*maxFrames*/) {
-    return 0;
-}
-
-void AacDecoder::cleanup() {
-    handle_ = nullptr;
-    initialized_ = false;
-}
-
-// —————————————————————————————————————————————————————————————————————————————
 // Helpers
 // —————————————————————————————————————————————————————————————————————————————
 
@@ -212,6 +191,32 @@ int Mp3Engine::decodeNextFrame(int16_t* buffer, int maxFrames) {
     return decoded;
 }
 
+bool Mp3Engine::seekToRatio(float ratio) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    ratio = std::max(0.0f, std::min(1.0f, ratio));
+
+    switch (metadata_.format) {
+        case AudioFormat::MP3:
+            return seekMp3(ratio);
+        case AudioFormat::MP4_AAC:
+        case AudioFormat::MP4_MP3:
+            return seekMp4(ratio);
+        default:
+            return false;
+    }
+}
+
+bool Mp3Engine::seekToMs(int64_t positionMs) {
+    if (metadata_.durationMs <= 0) return false;
+    float ratio = static_cast<float>(positionMs) / metadata_.durationMs;
+    return seekToRatio(ratio);
+}
+
+// =============================================================================
+// MP3 Implementation (minimp3)
+// =============================================================================
+
 bool Mp3Engine::loadMp3(const std::string& path) {
     mp3FileData_ = readFile(path);
     if (mp3FileData_.empty()) {
@@ -225,7 +230,7 @@ bool Mp3Engine::loadMp3(const std::string& path) {
     // Deteccao manual via primeiro frame / Manual detection via first frame
     mp3dec_frame_info_t frameInfo;
     int16_t framePCM[MINIMP3_MAX_SAMPLES_PER_FRAME];
-    int samples = mp3dec_decode_frame(getMp3Decoder(mp3Decoder_), mp3FileData_.data(),
+    (void)mp3dec_decode_frame(getMp3Decoder(mp3Decoder_), mp3FileData_.data(),
                             std::min(mp3FileData_.size(), size_t(4096)),
                             framePCM, &frameInfo);
 
@@ -319,20 +324,7 @@ bool Mp3Engine::seekMp3(float ratio) {
 }
 
 // =============================================================================
-// MP4 Stubs (implementacao real em Mp4Engine.cpp)
+// MP4 Implementation — IMPLEMENTADA EM Mp4Engine.cpp
 // =============================================================================
-
-bool Mp3Engine::loadMp4(const std::string& /*path*/) {
-    LOGE("MP4: loadMp4() should not be called from Mp3Engine.cpp");
-    return false;
-}
-
-int Mp3Engine::decodeMp4Frame(int16_t* /*buffer*/, int /*maxFrames*/) {
-    return 0;
-}
-
-bool Mp3Engine::seekMp4(float /*ratio*/) {
-    return false;
-}
 
 } // namespace eetgw
