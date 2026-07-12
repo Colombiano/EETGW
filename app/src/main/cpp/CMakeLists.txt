@@ -8,20 +8,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Configuracoes / Configurations
 # =============================================================================
 set(FFMPEG OFF CACHE BOOL "Usar FFmpeg (maior, mais formatos) / Use FFmpeg (larger, more formats)")
-set(OBOE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/oboe" CACHE STRING "Diretorio do Oboe / Oboe directory")
+set(OBOE_DIR "${CMAKE_CURRENT_SOURCE_SOURCE_DIR}/oboe" CACHE STRING "Diretorio do Oboe / Oboe directory")
 
 # =============================================================================
 # Flags do Compilador / Compiler Flags
 # =============================================================================
 # Nosso codigo: warnings sao warnings, nao erros
-# Use -Wno-error para garantir que warnings de bibliotecas de terceiros nao quebrem o build
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-error")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math -funroll-loops -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer")
-
-# Desabilitar -Werror globalmente (algumas libs de terceiros usam -Werror)
-string(REPLACE "-Werror" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-string(REPLACE "-Werror" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
 # =============================================================================
 # Oboe (Audio de Baixa Latencia / Low Latency Audio)
@@ -31,8 +26,11 @@ if (EXISTS "${OBOE_DIR}/CMakeLists.txt")
     set(SAVED_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     set(SAVED_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
     
-    # Para a compilacao do Oboe, remover -Werror explicitamente
-    # Garantir que warnings no codigo do Oboe nao falhem o build
+    # Para a compilacao do Oboe, garantir que warnings nao falhem o build
+    # Usar regex com word boundary para nao corromper flags como -Wformat-security
+    string(REGEX REPLACE "(^| )-Werror($| )" "\\1\\2" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "(^| )-Werror($| )" "\\1\\2" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wno-unused-parameter -Wno-sign-compare")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error -Wno-unused-parameter -Wno-sign-compare")
     
