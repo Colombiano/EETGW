@@ -90,6 +90,15 @@ struct Mp4Context {
             fclose(fileHandle);
             fileHandle = nullptr;
         }
+        // IMPORTANTE: O demuxState deve ser liberado pelo Mp4Engine
+        // usando MP4D_close() antes do reset do unique_ptr.
+        // Se ainda existir aqui, eh um safety net.
+        if (demuxState) {
+            // Nao podemos chamar MP4D_close aqui pois nao temos acesso ao minimp4.h
+            // O Mp4Engine deve chamar MP4D_close antes de destruir o contexto.
+            // Este ponteiro sera nullptr se Mp4Engine::unload() for chamado corretamente.
+            demuxState = nullptr;
+        }
     }
 };
 
