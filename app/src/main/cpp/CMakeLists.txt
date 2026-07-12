@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Configuracoes / Configurations
 # =============================================================================
 set(FFMPEG OFF CACHE BOOL "Usar FFmpeg (maior, mais formatos) / Use FFmpeg (larger, more formats)")
-set(OBOE_DIR "${CMAKE_CURRENT_SOURCE_SOURCE_DIR}/oboe" CACHE STRING "Diretorio do Oboe / Oboe directory")
+set(OBOE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/oboe" CACHE STRING "Diretorio do Oboe / Oboe directory")
 
 # =============================================================================
 # Flags do Compilador / Compiler Flags
