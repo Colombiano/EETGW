@@ -123,7 +123,9 @@ get_abi_config() {
     export STRIP="$TOOLCHAIN/bin/llvm-strip"
     export NM="$TOOLCHAIN/bin/llvm-nm"
 
+    # -fPIC ESSENCIAL para linkar em shared library (libeetgw.so)
     export CFLAGS="-fPIC -O3 -ffunction-sections -fdata-sections"
+    export CXXFLAGS="-fPIC -O3 -ffunction-sections -fdata-sections -std=c++17"
     export LDFLAGS="-Wl,--gc-sections"
 
     log_info "Compilando para $abi (target: $TARGET)"
@@ -187,6 +189,7 @@ build_abi() {
         RANLIB="$RANLIB" \
         STRIP="$STRIP" \
         CFLAGS="$CFLAGS" \
+        CXXFLAGS="$CXXFLAGS" \
         LDFLAGS="$LDFLAGS" \
         2>&1 | tee configure.log
 
