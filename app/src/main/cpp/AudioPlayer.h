@@ -7,6 +7,7 @@
 #include <atomic>
 #include <mutex>
 #include <vector>
+#include <functional>
 
 // =============================================================================
 // EETGW — Essa e pra tocar no Galaxy Watch
