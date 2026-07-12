@@ -6,9 +6,8 @@
 #include <mutex>
 #include <string>
 
-// minimp3 headers (single-header, lightweight)
-#include "minimp3.h"
-#include "minimp3_ex.h"
+// Forward declaration de tipos minimp3 (evita incluir header aqui)
+struct mp3dec_t;
 
 #ifdef USE_FFMPEG
 struct AVFormatContext;
@@ -51,7 +50,7 @@ private:
     bool loadMp3(const std::string& path);
     int decodeMp3Frame(int16_t* buffer, int maxFrames);
     bool seekMp3(float ratio);
-    
+
     std::unique_ptr<mp3dec_t> mp3Decoder_;
     std::vector<uint8_t> mp3FileData_;
     std::vector<uint8_t> mp3Remainder_;
@@ -63,7 +62,7 @@ private:
     bool loadMp4(const std::string& path);
     int decodeMp4Frame(int16_t* buffer, int maxFrames);
     bool seekMp4(float ratio);
-    
+
     std::unique_ptr<Mp4Context> mp4Context_;
     std::unique_ptr<AacDecoder> aacDecoder_;
     size_t currentChunkIndex_ = 0;
@@ -85,7 +84,7 @@ public:
 
     bool initialize(const uint8_t* ascData, size_t ascSize);
     int decode(const uint8_t* aacData, size_t aacSize, int16_t* pcmBuffer, int maxFrames);
-    
+
     int getSampleRate() const { return sampleRate_; }
     int getChannels() const { return channels_; }
 
